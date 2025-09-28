@@ -46,6 +46,7 @@ docker-compose -f docker-compose.dev.yml up --build
 ```
 
 This will:
+
 - Start Neon Local proxy on port 5432
 - Create an ephemeral database branch
 - Start your application on port 3000
@@ -143,6 +144,7 @@ The Dockerfile has three stages:
 ## Environment Variables Reference
 
 ### Development (.env.development)
+
 - `NODE_ENV=development`
 - `DATABASE_URL=postgres://neon:npg@neon-local:5432/acquisitions?sslmode=require`
 - `NEON_API_KEY`: Your Neon API key
@@ -151,6 +153,7 @@ The Dockerfile has three stages:
 - `JWT_SECRET`: Development JWT secret
 
 ### Production (.env.production)
+
 - `NODE_ENV=production`
 - `DATABASE_URL`: Full Neon Cloud connection string
 - `JWT_SECRET`: Production JWT secret
@@ -162,6 +165,7 @@ The Dockerfile has three stages:
 ### Common Issues
 
 **Connection Refused (Development)**
+
 ```bash
 # Check if Neon Local is running
 docker-compose -f docker-compose.dev.yml logs neon-local
@@ -174,6 +178,7 @@ docker-compose -f docker-compose.dev.yml restart
 The application is configured to handle Neon Local's self-signed certificates automatically.
 
 **Permission Issues**
+
 ```bash
 # Fix logs directory permissions
 chmod -R 755 logs/
@@ -209,11 +214,13 @@ docker-compose -f docker-compose.dev.yml up --build --force-recreate
 ## Security Considerations
 
 ### Development
+
 - Use strong JWT secrets even in development
 - Don't commit real API keys to version control
 - Neon Local creates isolated ephemeral branches
 
 ### Production
+
 - Use environment variable injection for secrets
 - Enable SSL/TLS for database connections
 - Regular security updates for base images

@@ -15,10 +15,12 @@ The project uses three main GitHub Actions workflows to ensure code quality, run
 ### 1. Lint and Format (`lint-and-format.yml`)
 
 **Triggers:**
+
 - Push to `main` or `staging` branches
 - Pull requests to `main` or `staging` branches
 
 **Features:**
+
 - ✅ Node.js 20.x with npm caching
 - ✅ ESLint code quality checks
 - ✅ Prettier formatting validation
@@ -26,6 +28,7 @@ The project uses three main GitHub Actions workflows to ensure code quality, run
 - ✅ Step-by-step summaries with actionable guidance
 
 **What it does:**
+
 1. Installs dependencies with `npm ci`
 2. Runs ESLint (`npm run lint`)
 3. Runs Prettier check (`npm run format:check`)
@@ -33,6 +36,7 @@ The project uses three main GitHub Actions workflows to ensure code quality, run
 5. Creates annotations for easy problem identification
 
 **Fix commands suggested:**
+
 ```bash
 npm run lint:fix      # Auto-fix ESLint issues
 npm run format        # Auto-format with Prettier
@@ -41,10 +45,12 @@ npm run format        # Auto-format with Prettier
 ### 2. Tests (`tests.yml`)
 
 **Triggers:**
+
 - Push to `main` or `staging` branches
 - Pull requests to `main` or `staging` branches
 
 **Features:**
+
 - ✅ Node.js 20.x with npm caching
 - ✅ PostgreSQL 15 test database
 - ✅ Environment variables setup
@@ -54,12 +60,14 @@ npm run format        # Auto-format with Prettier
 - ✅ PR comments with results
 
 **Environment Variables:**
+
 - `NODE_ENV=test`
 - `NODE_OPTIONS=--experimental-vm-modules`
 - `DATABASE_URL=postgres://test:test@localhost:5432/acquisitions_test`
 - `JWT_SECRET=test-jwt-secret-key-for-testing`
 
 **What it does:**
+
 1. Sets up PostgreSQL test database
 2. Installs dependencies and runs migrations
 3. Executes tests with coverage (`npm run test:coverage`)
@@ -70,10 +78,12 @@ npm run format        # Auto-format with Prettier
 ### 3. Docker Build and Push (`docker-build-and-push.yml`)
 
 **Triggers:**
+
 - Push to `main` branch
 - Manual trigger via `workflow_dispatch`
 
 **Features:**
+
 - ✅ Multi-platform builds (linux/amd64, linux/arm64)
 - ✅ Docker Hub integration
 - ✅ Automated tagging with metadata
@@ -82,6 +92,7 @@ npm run format        # Auto-format with Prettier
 - ✅ Deployment tracking
 
 **Generated Tags:**
+
 - `latest` - For main branch
 - `main` - Branch name
 - `main-abc1234` - Branch with short commit SHA
@@ -89,6 +100,7 @@ npm run format        # Auto-format with Prettier
 - Custom suffix (if provided via workflow_dispatch)
 
 **What it does:**
+
 1. Sets up Docker Buildx for multi-platform builds
 2. Logs into Docker Hub using secrets
 3. Extracts metadata and generates tags
@@ -102,6 +114,7 @@ npm run format        # Auto-format with Prettier
 Configure these secrets in your GitHub repository settings:
 
 ### Docker Hub Secrets
+
 - `DOCKER_USERNAME` - Your Docker Hub username
 - `DOCKER_PASSWORD` - Your Docker Hub password or access token
 
@@ -119,12 +132,14 @@ DOCKER_PASSWORD = your-dockerhub-password-or-token
 ### 2. Docker Hub Repository
 
 Ensure your Docker Hub repository exists:
+
 - Repository name should match your GitHub repository
 - Example: `weebpapi/acquisitions`
 
 ### 3. Branch Protection (Optional)
 
 Set up branch protection rules for `main` branch:
+
 - Require status checks: `Lint and Format Code`, `Run Tests`
 - Require up-to-date branches
 - Require pull request reviews
@@ -134,15 +149,18 @@ Set up branch protection rules for `main` branch:
 ### Success Indicators
 
 **Lint and Format:**
+
 - ✅ All ESLint rules pass
 - ✅ Code is properly formatted with Prettier
 
 **Tests:**
+
 - ✅ All tests pass
 - ✅ Coverage reports generated
 - ✅ Database migrations successful
 
 **Docker:**
+
 - ✅ Multi-platform build successful
 - ✅ Images pushed to Docker Hub
 - ✅ Security scan passed
@@ -150,6 +168,7 @@ Set up branch protection rules for `main` branch:
 ### Failure Scenarios
 
 **Common Lint/Format Issues:**
+
 ```bash
 # Fix ESLint issues
 npm run lint:fix
@@ -159,6 +178,7 @@ npm run format
 ```
 
 **Common Test Issues:**
+
 ```bash
 # Run tests locally
 npm test
@@ -168,6 +188,7 @@ npm run db:migrate
 ```
 
 **Common Docker Issues:**
+
 ```bash
 # Test build locally
 docker build -t test-image .
@@ -179,19 +200,24 @@ docker build -t test-image .
 ## Monitoring and Notifications
 
 ### GitHub Actions Tab
+
 - View workflow runs and logs
 - Download artifacts (coverage reports)
 - Monitor build times and success rates
 
 ### Step Summaries
+
 Each workflow generates detailed summaries:
+
 - Success/failure status
 - Coverage information (tests)
 - Image tags and usage instructions (docker)
 - Troubleshooting guidance
 
 ### PR Comments
+
 Test workflow automatically comments on PRs with:
+
 - Test results
 - Coverage percentages
 - Links to detailed reports
@@ -232,12 +258,14 @@ npx husky add .husky/pre-commit "npm run lint && npm run format:check"
 ## Artifacts and Reports
 
 ### Test Coverage Reports
+
 - **Location:** Workflow artifacts
 - **Retention:** 30 days
 - **Format:** HTML, LCOV, JSON
 - **Download:** From GitHub Actions workflow run page
 
 ### Docker Images
+
 - **Registry:** Docker Hub
 - **Repository:** `docker.io/{username}/{repository}`
 - **Retention:** Based on Docker Hub plan
@@ -265,7 +293,6 @@ name: Docker Staging Build
 on:
   push:
     branches: [staging]
-
 # Similar to docker-build-and-push.yml but with staging-specific configs
 ```
 
@@ -282,11 +309,13 @@ Add steps for external integrations:
 ## Performance Optimization
 
 ### Cache Strategy
+
 - **npm:** Cached by Node.js setup action
 - **Docker:** GitHub Actions cache for layers
 - **Dependencies:** Cached between runs
 
 ### Build Time Improvements
+
 - Multi-stage Dockerfile for faster builds
 - Buildx caching reduces rebuild time
 - Parallel linting and formatting checks
@@ -294,21 +323,25 @@ Add steps for external integrations:
 ## Troubleshooting
 
 ### Workflow Not Triggering
+
 - Check branch names in workflow files
 - Verify push/PR targets correct branches
 - Ensure workflows are in `.github/workflows/`
 
 ### Permission Issues
+
 - Check repository secrets are set correctly
 - Verify Docker Hub credentials
 - Ensure GitHub token has required permissions
 
 ### Build Failures
+
 - Check logs in GitHub Actions tab
 - Verify Dockerfile syntax
 - Test builds locally first
 
 ### Test Database Issues
+
 - PostgreSQL service may need more time to start
 - Check DATABASE_URL format
 - Verify migration files exist
@@ -316,16 +349,19 @@ Add steps for external integrations:
 ## Best Practices
 
 ### Code Quality
+
 - Always fix lint/format issues before merging
 - Maintain high test coverage (aim for >80%)
 - Write meaningful commit messages
 
 ### Security
+
 - Use secrets for sensitive data
 - Regularly update action versions
 - Review security scan results
 
 ### Deployment
+
 - Test Docker images locally before pushing
 - Use semantic versioning for releases
 - Monitor deployment success
@@ -333,6 +369,7 @@ Add steps for external integrations:
 ## Support and Maintenance
 
 ### Updating Actions
+
 Regularly update action versions in workflows:
 
 ```yaml
@@ -342,6 +379,7 @@ uses: docker/build-push-action@v5  # Monitor releases
 ```
 
 ### Monitoring
+
 - Set up notifications for workflow failures
 - Review coverage trends over time
 - Monitor Docker image sizes and security issues

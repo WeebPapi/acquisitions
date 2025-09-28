@@ -83,7 +83,7 @@ jobs:
         with:
           script: |
             const { execSync } = require('child_process');
-            
+
             try {
               // Get ESLint output
               execSync('npm run lint', { stdio: 'pipe' });
@@ -105,7 +105,7 @@ jobs:
                 }
               }
             }
-            
+
             try {
               // Check Prettier
               execSync('npm run format:check', { stdio: 'pipe' });

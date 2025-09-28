@@ -1,7 +1,15 @@
 import logger from '#config/logger.js';
-import { getAllUsers, getUserById, updateUser, deleteUser } from '#services/users.service.js';
+import {
+  getAllUsers,
+  getUserById,
+  updateUser,
+  deleteUser,
+} from '#services/users.service.js';
 import { formatValidationError } from '#utils/format.js';
-import { userIdSchema, updateUserSchema } from '#validations/users.validation.js';
+import {
+  userIdSchema,
+  updateUserSchema,
+} from '#validations/users.validation.js';
 
 export const getUsers = async (req, res, next) => {
   try {
@@ -81,7 +89,9 @@ export const updateUserController = async (req, res, next) => {
 
     // Authorization checks
     if (!isOwner && !isAdmin) {
-      logger.warn(`Unauthorized update attempt by ${req.user.email} for user ${id}`);
+      logger.warn(
+        `Unauthorized update attempt by ${req.user.email} for user ${id}`
+      );
       return res.status(403).json({
         error: 'Insufficient permissions',
         message: 'You can only update your own profile unless you are an admin',
@@ -99,7 +109,9 @@ export const updateUserController = async (req, res, next) => {
 
     // Prevent users from changing their own role
     if (updates.role && isOwner && isAdmin) {
-      logger.warn(`Admin user ${req.user.email} attempted to change their own role`);
+      logger.warn(
+        `Admin user ${req.user.email} attempted to change their own role`
+      );
       return res.status(403).json({
         error: 'Operation not allowed',
         message: 'You cannot change your own role',
@@ -108,7 +120,9 @@ export const updateUserController = async (req, res, next) => {
 
     const updatedUser = await updateUser(id, updates);
 
-    logger.info(`User updated successfully: ${updatedUser.email} by ${req.user.email}`);
+    logger.info(
+      `User updated successfully: ${updatedUser.email} by ${req.user.email}`
+    );
     res.json({
       message: 'User updated successfully',
       user: updatedUser,
@@ -151,7 +165,9 @@ export const deleteUserController = async (req, res, next) => {
 
     // Authorization checks
     if (!isOwner && !isAdmin) {
-      logger.warn(`Unauthorized delete attempt by ${req.user.email} for user ${id}`);
+      logger.warn(
+        `Unauthorized delete attempt by ${req.user.email} for user ${id}`
+      );
       return res.status(403).json({
         error: 'Insufficient permissions',
         message: 'You can only delete your own account unless you are an admin',
@@ -160,16 +176,21 @@ export const deleteUserController = async (req, res, next) => {
 
     // Prevent users from deleting their own account (security measure)
     if (isOwner) {
-      logger.warn(`User ${req.user.email} attempted to delete their own account`);
+      logger.warn(
+        `User ${req.user.email} attempted to delete their own account`
+      );
       return res.status(403).json({
         error: 'Operation not allowed',
-        message: 'You cannot delete your own account. Contact an administrator for account deletion.',
+        message:
+          'You cannot delete your own account. Contact an administrator for account deletion.',
       });
     }
 
     const deletedUser = await deleteUser(id);
 
-    logger.info(`User deleted successfully: ${deletedUser.email} by ${req.user.email}`);
+    logger.info(
+      `User deleted successfully: ${deletedUser.email} by ${req.user.email}`
+    );
     res.json({
       message: 'User deleted successfully',
       deletedUser: {

@@ -83,7 +83,7 @@ jobs:
         run: |
           echo "## 🐳 Docker Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           if [ "${{ steps.build.outcome }}" == "success" ]; then
             echo "### ✅ Build Successful" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -151,7 +151,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: ${{ env.IMAGE_NAME }}
-          short-description: "Acquisitions API - Production ready Node.js application with Express, PostgreSQL, and JWT authentication"
+          short-description: 'Acquisitions API - Production ready Node.js application with Express, PostgreSQL, and JWT authentication'
           readme-filepath: ./DOCKER.md
 
       - name: Security scan
@@ -172,7 +172,7 @@ jobs:
             const buildStatus = '${{ steps.build.outcome }}';
             const tags = `${{ steps.meta.outputs.tags }}`.split('\n').filter(tag => tag.trim());
             const imageName = '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}';
-            
+
             if (buildStatus === 'success') {
               console.log('✅ Docker build and push completed successfully!');
               console.log('📦 Image:', imageName);

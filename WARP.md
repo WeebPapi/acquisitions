@@ -15,24 +15,29 @@ This is a Node.js Express API for an acquisitions system that provides authentic
 ## Development Commands
 
 ### Core Development
+
 - `npm run dev` - Start development server with file watching (uses Node's --watch flag)
 - `npm run lint` - Run ESLint to check code quality
 - `npm run lint:fix` - Run ESLint and automatically fix issues
 
 ### Database Operations
+
 - `npm run db:generate` - Generate database migration files from schema changes
 - `npm run db:migrate` - Apply pending database migrations
 - `npm run db:studio` - Open Drizzle Studio for database management
 
 ### Testing
+
 - Tests are not yet configured (placeholder script exists)
 
 ## Architecture Overview
 
 ### Module Resolution System
+
 The project uses Node.js import maps for clean module imports:
+
 - `#config/*` → `./src/config/*`
-- `#controllers/*` → `./src/controllers/*`  
+- `#controllers/*` → `./src/controllers/*`
 - `#middleware/*` → `./src/middleware/*`
 - `#models/*` → `./src/models/*`
 - `#routes/*` → `./src/routes/*`
@@ -41,6 +46,7 @@ The project uses Node.js import maps for clean module imports:
 - `#validations/*` → `./src/validations/*`
 
 ### Application Structure
+
 ```
 src/
 ├── app.js          # Express app configuration and middleware setup
@@ -74,6 +80,7 @@ src/
 The application uses Drizzle ORM with PostgreSQL. Schema files are in `src/models/` and migrations are generated to the `./drizzle` directory.
 
 **User Model Structure**:
+
 - `id`: Serial primary key
 - `name`: Required string (max 255 chars)
 - `email`: Required unique string (max 255 chars)
@@ -84,6 +91,7 @@ The application uses Drizzle ORM with PostgreSQL. Schema files are in `src/model
 ## Environment Configuration
 
 Environment variables are loaded via dotenv. Key variables:
+
 - `DATABASE_URL`: Neon PostgreSQL connection string
 - `JWT_SECRET`: Secret for signing JWT tokens
 - `PORT`: Server port (defaults to 3000)
@@ -100,6 +108,7 @@ Environment variables are loaded via dotenv. Key variables:
 ## Code Style and Standards
 
 ESLint configuration enforces:
+
 - ES2022+ syntax with ES modules
 - 2-space indentation with switch case indentation
 - Single quotes, semicolons required

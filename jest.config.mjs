@@ -22,9 +22,7 @@ export default {
   },
 
   // Test file patterns - only look for app.test.js
-  testMatch: [
-    '<rootDir>/tests/app.test.js',
-  ],
+  testMatch: ['<rootDir>/tests/app.test.js'],
 
   // Files to ignore
   testPathIgnorePatterns: [

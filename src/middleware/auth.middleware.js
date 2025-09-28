@@ -43,7 +43,9 @@ export const authorize = (...roles) => {
     }
 
     if (!roles.includes(req.user.role)) {
-      logger.warn(`Unauthorized access attempt by ${req.user.email} (${req.user.role})`);
+      logger.warn(
+        `Unauthorized access attempt by ${req.user.email} (${req.user.role})`
+      );
       return res.status(403).json({
         error: 'Insufficient permissions',
         message: 'Access denied for this role',
@@ -70,7 +72,9 @@ export const authorizeOwnerOrAdmin = (req, res, next) => {
   const isAdmin = req.user.role === 'admin';
 
   if (!isOwner && !isAdmin) {
-    logger.warn(`Unauthorized access attempt by ${req.user.email} to user ${userId}`);
+    logger.warn(
+      `Unauthorized access attempt by ${req.user.email} to user ${userId}`
+    );
     return res.status(403).json({
       error: 'Insufficient permissions',
       message: 'You can only access your own data unless you are an admin',

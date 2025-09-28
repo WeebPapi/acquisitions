@@ -92,7 +92,7 @@ jobs:
         run: |
           echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           if [ "${{ steps.test.outputs.test_status }}" == "success" ]; then
             echo "### ✅ Tests Passed" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -124,13 +124,13 @@ jobs:
             echo "- Ensure database is properly configured" >> $GITHUB_STEP_SUMMARY
             echo "- Run tests locally: \`npm test\`" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📈 Artifacts" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- Coverage reports (retained for 30 days)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           # Add environment info
           echo "### 🔧 Test Environment" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -146,16 +146,16 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            
+
             // Look for Jest output files
             const possiblePaths = [
               'jest-results.json',
               'test-results.json',
               'coverage/test-results.json'
             ];
-            
+
             let testResults = null;
-            
+
             for (const testPath of possiblePaths) {
               if (fs.existsSync(testPath)) {
                 try {
@@ -166,7 +166,7 @@ jobs:
                 }
               }
             }
-            
+
             // If we have test results, create annotations
             if (testResults && testResults.testResults) {
               for (const testResult of testResults.testResults) {
@@ -204,7 +204,7 @@ jobs:
           script: |
             const coverageExists = require('fs').existsSync('coverage/coverage-summary.json');
             let coverageInfo = '';
-            
+
             if (coverageExists) {
               try {
                 const coverage = require('./coverage/coverage-summary.json');
@@ -214,7 +214,7 @@ jobs:
                 const statementsPct = coverage.total.statements.pct;
                 
                 coverageInfo = `
-            
+
             ## 📊 Coverage Report
             - **Lines:** ${linesPct}%
             - **Branches:** ${branchesPct}%
@@ -224,13 +224,13 @@ jobs:
                 coverageInfo = '\n\n## 📊 Coverage Report\nCoverage data available in artifacts.';
               }
             }
-            
+
             const comment = `## ✅ Tests Passed!
-            
+
             All tests completed successfully on this PR.${coverageInfo}
-            
+
             *Coverage reports are available in the workflow artifacts.*`;
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,

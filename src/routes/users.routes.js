@@ -4,7 +4,11 @@ import {
   updateUserController,
   deleteUserController,
 } from '#controllers/users.controller.js';
-import { authenticate, authorize, authorizeOwnerOrAdmin } from '#middleware/auth.middleware.js';
+import {
+  authenticate,
+  authorize,
+  authorizeOwnerOrAdmin,
+} from '#middleware/auth.middleware.js';
 import express from 'express';
 
 const router = express.Router();

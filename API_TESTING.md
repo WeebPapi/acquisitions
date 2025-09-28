@@ -49,6 +49,7 @@ curl -X GET http://localhost:3000/api/users \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "message": "Successfully retrieved users",
@@ -75,6 +76,7 @@ curl -X GET http://localhost:3000/api/users/1 \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "message": "Successfully retrieved user",
@@ -105,6 +107,7 @@ curl -X POST http://localhost:3000/api/auth/sign-up \
 ### 4. Update User (Owner can update own data, Admin can update anyone)
 
 **Update own profile (name and email):**
+
 ```bash
 curl -X PUT http://localhost:3000/api/users/1 \
   -H "Content-Type: application/json" \
@@ -116,6 +119,7 @@ curl -X PUT http://localhost:3000/api/users/1 \
 ```
 
 **Admin updating another user's role:**
+
 ```bash
 curl -X PUT http://localhost:3000/api/users/2 \
   -H "Content-Type: application/json" \
@@ -126,6 +130,7 @@ curl -X PUT http://localhost:3000/api/users/2 \
 ```
 
 **Update password:**
+
 ```bash
 curl -X PUT http://localhost:3000/api/users/1 \
   -H "Content-Type: application/json" \
@@ -136,6 +141,7 @@ curl -X PUT http://localhost:3000/api/users/1 \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "message": "User updated successfully",
@@ -159,6 +165,7 @@ curl -X DELETE http://localhost:3000/api/users/2 \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "message": "User deleted successfully",
@@ -180,6 +187,7 @@ curl -X GET http://localhost:3000/api/users
 ```
 
 **Expected Response (401):**
+
 ```json
 {
   "error": "Authentication required",
@@ -197,6 +205,7 @@ curl -X GET http://localhost:3000/api/users \
 ```
 
 **Expected Response (403):**
+
 ```json
 {
   "error": "Insufficient permissions",
@@ -212,6 +221,7 @@ curl -X GET http://localhost:3000/api/users/999 \
 ```
 
 **Expected Response (404):**
+
 ```json
 {
   "error": "User not found",
@@ -232,6 +242,7 @@ curl -X PUT http://localhost:3000/api/users/1 \
 ```
 
 **Expected Response (400):**
+
 ```json
 {
   "error": "Validation failed",
@@ -242,6 +253,7 @@ curl -X PUT http://localhost:3000/api/users/1 \
 ### 5. Role Change Restrictions
 
 **Regular user trying to change role:**
+
 ```bash
 curl -X PUT http://localhost:3000/api/users/1 \
   -H "Content-Type: application/json" \
@@ -252,6 +264,7 @@ curl -X PUT http://localhost:3000/api/users/1 \
 ```
 
 **Expected Response (403):**
+
 ```json
 {
   "error": "Insufficient permissions",
@@ -261,12 +274,12 @@ curl -X PUT http://localhost:3000/api/users/1 \
 
 ## Authorization Matrix
 
-| Operation | Admin | User (Own Data) | User (Others' Data) |
-|-----------|-------|------------------|---------------------|
-| GET /users | ✅ | ❌ | ❌ |
-| GET /users/:id | ✅ | ✅ | ❌ |
-| PUT /users/:id | ✅ | ✅ (no role change) | ❌ |
-| DELETE /users/:id | ✅ | ❌ (cannot delete self) | ❌ |
+| Operation         | Admin | User (Own Data)         | User (Others' Data) |
+| ----------------- | ----- | ----------------------- | ------------------- |
+| GET /users        | ✅    | ❌                      | ❌                  |
+| GET /users/:id    | ✅    | ✅                      | ❌                  |
+| PUT /users/:id    | ✅    | ✅ (no role change)     | ❌                  |
+| DELETE /users/:id | ✅    | ❌ (cannot delete self) | ❌                  |
 
 ## Additional Security Features
 
