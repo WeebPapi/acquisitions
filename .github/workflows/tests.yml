@@ -1,0 +1,239 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main, staging]
+
+env:
+  NODE_ENV: test
+  NODE_OPTIONS: --experimental-vm-modules
+  DATABASE_URL: postgres://test:test@localhost:5432/acquisitions_test?sslmode=disable
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: acquisitions_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup test environment
+        run: |
+          echo "🔧 Setting up test environment..."
+          echo "NODE_ENV=$NODE_ENV"
+          echo "NODE_OPTIONS=$NODE_OPTIONS"
+          echo "DATABASE_URL=$DATABASE_URL"
+
+      - name: Run database migrations
+        run: |
+          echo "🗃️ Running database migrations..."
+          npm run db:generate
+          npm run db:migrate
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+
+      - name: Run tests with coverage
+        id: test
+        run: |
+          echo "🧪 Running tests with coverage..."
+          if npm run test:coverage; then
+            echo "✅ Tests passed"
+            echo "test_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Tests failed"
+            echo "test_status=failure" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+        env:
+          NODE_ENV: ${{ env.NODE_ENV }}
+          NODE_OPTIONS: ${{ env.NODE_OPTIONS }}
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          JWT_SECRET: test-jwt-secret-key-for-testing
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            coverage/
+            jest-coverage/
+          retention-days: 30
+
+      - name: Generate test summary
+        if: always()
+        run: |
+          echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.test.outputs.test_status }}" == "success" ]; then
+            echo "### ✅ Tests Passed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "All tests completed successfully!" >> $GITHUB_STEP_SUMMARY
+            
+            # Check if coverage files exist and display coverage info
+            if [ -f "coverage/lcov.info" ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "### 📊 Coverage Summary" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "Coverage reports have been uploaded as artifacts and will be retained for 30 days." >> $GITHUB_STEP_SUMMARY
+              
+              # Try to extract coverage percentage if available
+              if [ -f "coverage/coverage-summary.json" ]; then
+                if command -v jq &> /dev/null; then
+                  COVERAGE=$(jq -r '.total.lines.pct' coverage/coverage-summary.json 2>/dev/null || echo "N/A")
+                  echo "- **Line Coverage:** ${COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+                fi
+              fi
+            fi
+          else
+            echo "### ❌ Tests Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Some tests failed. Please check the test output above for details." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Common troubleshooting steps:**" >> $GITHUB_STEP_SUMMARY
+            echo "- Check for syntax errors" >> $GITHUB_STEP_SUMMARY
+            echo "- Verify all dependencies are properly installed" >> $GITHUB_STEP_SUMMARY
+            echo "- Ensure database is properly configured" >> $GITHUB_STEP_SUMMARY
+            echo "- Run tests locally: \`npm test\`" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📈 Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Coverage reports (retained for 30 days)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Add environment info
+          echo "### 🔧 Test Environment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Node.js:** $(node --version)" >> $GITHUB_STEP_SUMMARY
+          echo "- **npm:** $(npm --version)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** $NODE_ENV" >> $GITHUB_STEP_SUMMARY
+          echo "- **Database:** PostgreSQL 15" >> $GITHUB_STEP_SUMMARY
+
+      - name: Annotate test failures
+        if: failure() && steps.test.outputs.test_status == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Look for Jest output files
+            const possiblePaths = [
+              'jest-results.json',
+              'test-results.json',
+              'coverage/test-results.json'
+            ];
+            
+            let testResults = null;
+            
+            for (const testPath of possiblePaths) {
+              if (fs.existsSync(testPath)) {
+                try {
+                  testResults = JSON.parse(fs.readFileSync(testPath, 'utf8'));
+                  break;
+                } catch (error) {
+                  console.log(`Could not parse ${testPath}: ${error.message}`);
+                }
+              }
+            }
+            
+            // If we have test results, create annotations
+            if (testResults && testResults.testResults) {
+              for (const testResult of testResults.testResults) {
+                if (testResult.status === 'failed') {
+                  for (const assertionResult of testResult.assertionResults) {
+                    if (assertionResult.status === 'failed') {
+                      const fileName = path.relative(process.cwd(), testResult.name);
+                      
+                      for (const failureMessage of assertionResult.failureMessages) {
+                        // Try to extract line number from stack trace
+                        const lineMatch = failureMessage.match(new RegExp(`${fileName}:(\\d+):`));
+                        const line = lineMatch ? parseInt(lineMatch[1]) : 1;
+                        
+                        core.error(assertionResult.fullName, {
+                          title: 'Test Failure',
+                          file: fileName,
+                          startLine: line
+                        });
+                      }
+                    }
+                  }
+                }
+              }
+            } else {
+              // Fallback: create a general annotation
+              core.error('Tests failed. Check the test output for details.', {
+                title: 'Test Failure'
+              });
+            }
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && steps.test.outputs.test_status == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const coverageExists = require('fs').existsSync('coverage/coverage-summary.json');
+            let coverageInfo = '';
+            
+            if (coverageExists) {
+              try {
+                const coverage = require('./coverage/coverage-summary.json');
+                const linesPct = coverage.total.lines.pct;
+                const branchesPct = coverage.total.branches.pct;
+                const functionsPct = coverage.total.functions.pct;
+                const statementsPct = coverage.total.statements.pct;
+                
+                coverageInfo = `
+            
+            ## 📊 Coverage Report
+            - **Lines:** ${linesPct}%
+            - **Branches:** ${branchesPct}%
+            - **Functions:** ${functionsPct}%
+            - **Statements:** ${statementsPct}%`;
+              } catch (error) {
+                coverageInfo = '\n\n## 📊 Coverage Report\nCoverage data available in artifacts.';
+              }
+            }
+            
+            const comment = `## ✅ Tests Passed!
+            
+            All tests completed successfully on this PR.${coverageInfo}
+            
+            *Coverage reports are available in the workflow artifacts.*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

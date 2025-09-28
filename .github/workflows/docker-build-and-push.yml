@@ -1,0 +1,208 @@
+name: Docker Build and Push
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag_suffix:
+        description: 'Additional tag suffix (optional)'
+        required: false
+        default: ''
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  docker:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            # Set latest tag for main branch
+            type=raw,value=latest,enable={{is_default_branch}}
+            # Branch name
+            type=ref,event=branch
+            # Short commit SHA
+            type=sha,prefix={{branch}}-,format=short
+            # Production timestamp format
+            type=raw,value=prod-{{date 'YYYYMMDD-HHmmss'}},enable={{is_default_branch}}
+            # Custom suffix if provided
+            type=raw,value={{branch}}${{ github.event.inputs.tag_suffix }},enable=${{ github.event.inputs.tag_suffix != '' }}
+          labels: |
+            org.opencontainers.image.title=${{ github.event.repository.name }}
+            org.opencontainers.image.description=Acquisitions API - Production ready Node.js application
+            org.opencontainers.image.url=${{ github.event.repository.html_url }}
+            org.opencontainers.image.source=${{ github.event.repository.clone_url }}
+            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+            org.opencontainers.image.created=${{ steps.meta.outputs.created }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.licenses=ISC
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          target: production
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
+            REVISION=${{ github.sha }}
+
+      - name: Generate build summary
+        if: always()
+        run: |
+          echo "## 🐳 Docker Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.build.outcome }}" == "success" ]; then
+            echo "### ✅ Build Successful" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Docker image has been successfully built and pushed to Docker Hub!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            echo "### 📦 Published Image" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Repository:** \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            echo "### 🏷️ Tags" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Parse and display tags
+            TAGS="${{ steps.meta.outputs.tags }}"
+            echo "$TAGS" | while IFS= read -r tag; do
+              if [ ! -z "$tag" ]; then
+                echo "- \`$tag\`" >> $GITHUB_STEP_SUMMARY
+              fi
+            done
+            
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 🚀 Usage" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Pull and run the image:" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+            echo "# Pull the latest image" >> $GITHUB_STEP_SUMMARY
+            echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "# Run the container" >> $GITHUB_STEP_SUMMARY
+            echo "docker run -p 3000:3000 \\" >> $GITHUB_STEP_SUMMARY
+            echo "  -e DATABASE_URL=\"your-database-url\" \\" >> $GITHUB_STEP_SUMMARY
+            echo "  -e JWT_SECRET=\"your-jwt-secret\" \\" >> $GITHUB_STEP_SUMMARY
+            echo "  ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            echo "### 📋 Build Details" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "- **Platforms:** linux/amd64, linux/arm64" >> $GITHUB_STEP_SUMMARY
+            echo "- **Build Context:** Dockerfile (production target)" >> $GITHUB_STEP_SUMMARY
+            echo "- **Cache:** GitHub Actions cache enabled" >> $GITHUB_STEP_SUMMARY
+            echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- **Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- **Triggered by:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+            
+          else
+            echo "### ❌ Build Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The Docker build process failed. Please check the build logs above for details." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Common troubleshooting steps:**" >> $GITHUB_STEP_SUMMARY
+            echo "- Check Dockerfile syntax and build context" >> $GITHUB_STEP_SUMMARY
+            echo "- Verify Docker Hub credentials in repository secrets" >> $GITHUB_STEP_SUMMARY
+            echo "- Ensure all dependencies are properly specified" >> $GITHUB_STEP_SUMMARY
+            echo "- Test the build locally: \`docker build -t test-image .\`" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Update Docker Hub description
+        if: steps.build.outcome == 'success' && github.ref == 'refs/heads/main'
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: ${{ env.IMAGE_NAME }}
+          short-description: "Acquisitions API - Production ready Node.js application with Express, PostgreSQL, and JWT authentication"
+          readme-filepath: ./DOCKER.md
+
+      - name: Security scan
+        if: steps.build.outcome == 'success'
+        uses: docker/scout-action@v1
+        with:
+          command: cves
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          only-severities: critical,high
+          write-comment: false
+          summary: true
+
+      - name: Post build notifications
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const buildStatus = '${{ steps.build.outcome }}';
+            const tags = `${{ steps.meta.outputs.tags }}`.split('\n').filter(tag => tag.trim());
+            const imageName = '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}';
+            
+            if (buildStatus === 'success') {
+              console.log('✅ Docker build and push completed successfully!');
+              console.log('📦 Image:', imageName);
+              console.log('🏷️  Tags:', tags.join(', '));
+              
+              // Create a deployment if this is the main branch
+              if ('${{ github.ref }}' === 'refs/heads/main') {
+                try {
+                  await github.rest.repos.createDeployment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    ref: '${{ github.sha }}',
+                    environment: 'production',
+                    description: `Docker image ${imageName}:latest deployed`,
+                    auto_merge: false,
+                    required_contexts: []
+                  });
+                  console.log('📋 Created deployment record');
+                } catch (error) {
+                  console.log('⚠️  Could not create deployment record:', error.message);
+                }
+              }
+            } else {
+              console.log('❌ Docker build failed');
+              core.setFailed('Docker build and push failed');
+            }
+
+      - name: Clean up
+        if: always()
+        run: |
+          echo "🧹 Cleaning up..."
+          docker system prune -f || true
+          echo "✅ Cleanup completed"

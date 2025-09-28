@@ -1,0 +1,125 @@
+name: Lint and Format
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main, staging]
+
+jobs:
+  lint-and-format:
+    name: Lint and Format Code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        id: eslint
+        run: |
+          echo "🔍 Running ESLint..."
+          if npm run lint; then
+            echo "✅ ESLint passed"
+            echo "eslint_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ ESLint failed"
+            echo "eslint_status=failure" >> $GITHUB_OUTPUT
+            echo "## 🔧 ESLint Issues Found" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "ESLint found issues in your code. Run the following command to auto-fix most issues:" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+            echo "npm run lint:fix" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+      - name: Run Prettier Check
+        if: steps.eslint.outputs.eslint_status == 'success'
+        id: prettier
+        run: |
+          echo "🎨 Running Prettier check..."
+          if npm run format:check; then
+            echo "✅ Prettier check passed"
+            echo "prettier_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Prettier check failed"
+            echo "prettier_status=failure" >> $GITHUB_OUTPUT
+            echo "## 🎨 Formatting Issues Found" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Prettier found formatting issues in your code. Run the following command to auto-format:" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+            echo "npm run format" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+      - name: Success Summary
+        if: steps.eslint.outputs.eslint_status == 'success' && steps.prettier.outputs.prettier_status == 'success'
+        run: |
+          echo "## ✅ Code Quality Check Passed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ ESLint: No issues found" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Prettier: Code is properly formatted" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🎉 Your code meets all quality standards!" >> $GITHUB_STEP_SUMMARY
+
+      - name: Annotate errors
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { execSync } = require('child_process');
+            
+            try {
+              // Get ESLint output
+              execSync('npm run lint', { stdio: 'pipe' });
+            } catch (error) {
+              const output = error.stdout.toString() + error.stderr.toString();
+              
+              // Parse ESLint output and create annotations
+              const lines = output.split('\n');
+              for (const line of lines) {
+                const match = line.match(/(.+):(\d+):(\d+): (.+)/);
+                if (match) {
+                  const [, file, lineNum, col, message] = match;
+                  core.error(message, {
+                    title: 'ESLint Error',
+                    file: file,
+                    startLine: parseInt(lineNum),
+                    startColumn: parseInt(col)
+                  });
+                }
+              }
+            }
+            
+            try {
+              // Check Prettier
+              execSync('npm run format:check', { stdio: 'pipe' });
+            } catch (error) {
+              const output = error.stdout.toString() + error.stderr.toString();
+              
+              // Parse Prettier output and create annotations
+              const lines = output.split('\n');
+              for (const line of lines) {
+                if (line.includes('.js') || line.includes('.ts') || line.includes('.json')) {
+                  core.error(`File needs formatting: ${line}`, {
+                    title: 'Prettier Formatting',
+                    file: line.trim()
+                  });
+                }
+              }
+            }
